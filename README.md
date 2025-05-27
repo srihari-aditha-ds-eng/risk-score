@@ -72,6 +72,48 @@ docker-compose run --rm risk-analyzer
 docker-compose run --rm risk-analyzer --document documents/your_document.pdf
 ```
 
+## Quick Start with Docker Hub
+
+You can pull and run the Docker image directly:
+
+```bash
+docker pull aadi7568/risk-score:latest
+docker run -v $(pwd)/documents:/app/documents -v $(pwd)/reference_documents:/app/reference_documents -e GOOGLE_API_KEY=your_api_key aadi7568/risk-score:latest
+```
+
+Or use docker-compose:
+
+```bash
+docker-compose up
+```
+
+## Running with Python3
+
+To run the risk analysis system directly using Python3, follow these steps:
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/aadi7568/risk-score.git
+   cd risk-score
+   ```
+
+2. **Set up a virtual environment and install dependencies:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
+   pip install -r requirements.txt
+   ```
+
+3. **Run the analysis:**
+   ```bash
+   python main.py --document documents/sample_contract.txt
+   ```
+
+   If you have reference documents, you can include them:
+   ```bash
+   python main.py --document documents/sample_contract.txt --reference-dir reference_docs
+   ```
+
 ## Supported Document Types
 
 - PDF (.pdf)
