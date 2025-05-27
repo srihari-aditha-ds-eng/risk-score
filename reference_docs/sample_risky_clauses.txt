@@ -1,0 +1,25 @@
+CONTRACT CLAUSES - REFERENCE DOCUMENT
+
+1. Indemnification Clause
+The Party shall indemnify, defend, and hold harmless the other Party from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or relating to any breach of this Agreement, regardless of whether such claims are based on contract, tort, or any other legal theory.
+
+2. Limitation of Liability
+IN NO EVENT SHALL EITHER PARTY BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, LOST DATA, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH THIS AGREEMENT, EVEN IF SUCH PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+3. Force Majeure
+Neither Party shall be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, war, terrorism, civil unrest, or government action.
+
+4. Confidentiality
+The Receiving Party shall maintain the confidentiality of all Confidential Information and shall not disclose such information to any third party without the prior written consent of the Disclosing Party, except as required by law.
+
+5. Termination
+Either Party may terminate this Agreement immediately upon written notice if the other Party breaches any material term of this Agreement and fails to cure such breach within thirty (30) days of receiving written notice thereof.
+
+6. Governing Law
+This Agreement shall be governed by and construed in accordance with the laws of the State of [State], without regard to its conflict of law principles.
+
+7. Assignment
+Neither Party may assign or transfer this Agreement or any of its rights or obligations hereunder without the prior written consent of the other Party, which consent shall not be unreasonably withheld.
+
+8. Entire Agreement
+This Agreement constitutes the entire understanding between the Parties with respect to the subject matter hereof and supersedes all prior agreements, understandings, and negotiations, whether written or oral. 
