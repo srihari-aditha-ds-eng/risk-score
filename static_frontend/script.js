@@ -31,7 +31,10 @@ async function generateScore() {
             body: formData
         }).catch(error => {
             console.error('Network error:', error);
-            throw new Error(`Network error: ${error.message}. This might be a CORS issue. Please ensure the API server is running and CORS is enabled.`);
+            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                throw new Error('CORS error: Unable to connect to the API. Please ensure the API server is running and CORS is properly configured.');
+            }
+            throw new Error(`Network error: ${error.message}`);
         });
 
         console.log('Response status:', response.status);
@@ -43,13 +46,13 @@ async function generateScore() {
 
         const data = await response.json();
         console.log('Received data:', data);
-        
+
         // Update score display
         scoreValue.textContent = `${data.risk_score}%`;
-        
+
         // Update risk indicator position (0-100 to percentage)
         riskIndicator.style.left = `${data.risk_score}%`;
-        
+
         // Display risky clauses if any
         if (data.risky_clauses && data.risky_clauses.length > 0) {
             riskyClauses.classList.remove('hidden');
@@ -62,18 +65,41 @@ async function generateScore() {
 
                 // Use index + 1 for sequential numbering in the circle
                 const sequentialNumber = index + 1;
+                // Get the category and severity for this clause using the index
+                const category = data.risk_categories[index] || 'N/A';
+                const severity = data.clause_severity[index] || 'N/A'; // Use the severity from the API
 
+                // Determine CSS class for severity
+                let severityClass = '';
+                switch (severity.toLowerCase()) {
+                    case 'high risk':
+                        severityClass = 'severity-high';
+                        break;
+                    case 'medium risk':
+                        severityClass = 'severity-medium';
+                        break;
+                    case 'low risk':
+                        severityClass = 'severity-low';
+                        break;
+                    default:
+                        severityClass = 'severity-unknown';
+                }
+ 
                 return `
-                    <div class="p-4 bg-red-50 rounded-lg border border-red-200">
-                        <div class="flex items-start">
-                            <span class="flex-shrink-0 w-6 h-6 bg-red-100 text-red-800 rounded-full flex items-center justify-center font-medium mr-3">${sequentialNumber}</span>
-                            <div>
-                                <p class="text-red-800 font-medium mb-2">${clauseText}</p>
-                                <p class="text-red-600 text-sm">${explanation}</p>
+                <div class="p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 w-6 h-6 bg-red-100 text-red-800 rounded-full flex items-center justify-center font-medium mr-3">${sequentialNumber}</span>
+                        <div class="flex-grow">
+                            <p class="text-red-800 font-medium mb-1">${clauseText}</p>
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-xs font-semibold px-2.5 py-0.5 rounded ${severityClass}">${severity}</span>
+                                <span class="text-xs font-semibold px-2.5 py-0.5 rounded bg-gray-200 text-gray-800 category-tag">${category}</span>
                             </div>
+                            <p class="text-red-600 text-sm">${explanation}</p>
                         </div>
                     </div>
-                `;
+                </div>
+            `;
             }).join('');
         } else {
             riskyClauses.classList.add('hidden');
@@ -83,7 +109,7 @@ async function generateScore() {
         scoreValue.textContent = 'Error: ' + error.message;
         riskIndicator.style.left = '50%';
         riskyClauses.classList.add('hidden');
-        
+
         // Show error message to user
         const errorDiv = document.createElement('div');
         errorDiv.className = 'mt-4 p-4 bg-red-100 text-red-700 rounded-lg';

@@ -10,13 +10,14 @@ import shutil
 
 app = FastAPI()
 
-# Add CORS middleware (adjust allow_origins if you deploy to a specific domain)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"], 
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["GET", "POST", "OPTIONS"], 
+    allow_headers=["*"],  
+    expose_headers=["*"],  
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Serve static files from the 'static_frontend' directory
@@ -27,32 +28,64 @@ async def read_index():
     return FileResponse("static_frontend/index.html")
 
 def parse_analysis(analysis_text: str) -> dict:
-    """Parse the analysis text to extract risk score and clauses."""
+    """Parse the analysis text to extract risk score, clauses, risk categories, and clause severity from LLM output."""
     result = {
         "risk_score": 0,
-        "risky_clauses": []
+        "risky_clauses": [],
+        "risk_categories": [],
+        "clause_severity": []
     }
-    
+
     # Extract risk score
     score_match = re.search(r"Risk Score:\s*(\d+)", analysis_text)
     if score_match:
         result["risk_score"] = int(score_match.group(1))
-    
-    # Extract risky clauses
+
+    # Extract risky clauses, categories, and severity from LLM formatted list
     clauses = []
+    categories = []
+    severity_tags = [] # Use a new variable name for clarity
+
+    # Regex to capture: Clause Text, Severity, Category, Explanation
+    # Format: [Clause Text] [Severity] [Category] - [Explanation]
+    clause_regex = re.compile(r'(.+?)\s*\[([^\]]+)\]\s*\[([^\]]+)\]\s*-\s*(.+)')
+
     for line in analysis_text.split('\n'):
-        if line.strip().startswith(('1.', '2.', '3.', '4.', '5.')):
-            # Remove the number and dot prefix from the model's list
-            clause_text_raw = re.sub(r'^\d+\.\s*', '', line.strip())
-            
-            # Further remove potential original document numbering at the beginning of the line
-            # This regex looks for patterns like '6.5 ', '8.4 ', '9.1 ', etc. at the start of the line
-            clause_text_cleaned = re.sub(r'^(\d+(\.\d+)*\s+)', '', clause_text_raw)
-            
-            if clause_text_cleaned:
-                clauses.append(clause_text_cleaned)
-    
+        # Check for numbered list items (1., 2., etc.) from LLM output
+        if re.match(r'^\d+\.\s*', line.strip()):
+            # Remove the number and dot prefix
+            line_cleaned = re.sub(r'^\d+\.\s*', '', line.strip())
+
+            # Remove potential original document numbering at the beginning of the line
+            line_cleaned = re.sub(r'^(\d+(\.\d+)*\s+)', '', line_cleaned)
+
+            # Attempt to match the new LLM output format (Clause] [Severity] [Category] - Explanation)
+            match = clause_regex.match(line_cleaned)
+
+            if match:
+                # Extract groups: (Clause Text), (Severity), (Category), (Explanation)
+                clause_text = match.group(1).strip()
+                severity = match.group(2).strip()
+                category = match.group(3).strip()
+                explanation = match.group(4).strip()
+
+                # Combine clause text and explanation for the risky_clauses array
+                full_clause_entry = f"{clause_text} - {explanation}"
+
+                clauses.append(full_clause_entry)
+                severity_tags.append(severity)
+                categories.append(category)
+            elif line_cleaned: # Fallback if regex doesn't match but line is not empty
+                 # This case might happen if the LLM doesn't follow the format perfectly.
+                 # We'll add the cleaned line as clause text, and empty strings for category/severity.
+                 clauses.append(line_cleaned)
+                 severity_tags.append("")
+                 categories.append("")
+
     result["risky_clauses"] = clauses
+    result["risk_categories"] = categories
+    result["clause_severity"] = severity_tags # Use the extracted severity tags
+
     return result
 
 @app.post("/analyze")

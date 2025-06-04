@@ -6,4 +6,36 @@ body {
 }
 .risk-indicator {
     transition: left 0.3s ease-in-out;
+}
+
+/* Add styles for severity tags */
+.severity-high {
+    background-color: #fee2e2; /* bg-red-100 */
+    color: #991b1b; /* text-red-900 */
+}
+
+.severity-medium {
+    background-color: #fffbe7; /* bg-yellow-100 */
+    color: #92400e; /* text-yellow-900 */
+}
+
+.severity-low {
+    background-color: #dcfce7; /* bg-green-100 */
+    color: #14532d; /* text-green-900 */
+}
+
+.severity-unknown {
+    background-color: #e5e7eb; /* bg-gray-200 */
+    color: #374151; /* text-gray-700 */
+}
+
+/* Add styles for category tag (you can adjust these) */
+.category-tag {
+    /* Styles are already set in the HTML span using Tailwind classes, but you can override here if needed */
+}
+
+/* Optional: Adjust spacing or appearance */
+.risky-clauses .flex.items-start > .flex-grow {
+    /* Add some padding or margin if needed between number circle and text/tags */
+    padding-left: 0.5rem; /* Example */
 } 
