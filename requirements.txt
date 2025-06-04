@@ -8,5 +8,6 @@ google-generativeai>=0.3.0
 tqdm==4.66.1
 fastapi
 uvicorn
+gunicorn
 python-multipart
 pysqlite3-binary
