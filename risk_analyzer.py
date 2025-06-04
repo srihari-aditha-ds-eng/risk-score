@@ -58,10 +58,11 @@ Operational Risk:
 Analysis Requirements:
 1. Identify the top 5 most significantly risky clauses based on the criteria above. If fewer than 5 such clauses exist, list only those that do.
 2. CRITICAL: List the clauses in descending order of risk severity - where #1 represents the highest risk clause, #2 the second highest risk, and so on through #5 being the lowest risk among those identified.
-3. For each identified clause, provide:
-   - An explicit severity tag: [High Risk], [Medium Risk], or [Low Risk] based on its position in the severity order and overall impact.
+3. For each identified clause, you MUST provide ALL of the following:
+   - The full clause text.
+   - An explicit severity tag: [High Risk], [Medium Risk], or [Low Risk].
    - The risk category from the four types above: [Legal Risk], [Financial Risk], [Compliance & Regulatory Risk], or [Operational Risk].
-   - A concise, one-line explanation of why it is significantly and unusually risky for the Client.
+   - A concise, one-line explanation of why it is significantly and unusually risky for the Client. If a clause is flagged but the risk is minimal, provide a brief explanation of why it might still be a minor concern.
 4. Provide a single risk score from 0-100 (where 100 indicates extreme, critical risk for the Client), reflecting the overall level of significant, unusual, and unfavorable risk in the document based on the clauses identified.
 
 Risk Score Guidelines (reflecting significant, unusual risk):
@@ -71,7 +72,7 @@ Risk Score Guidelines (reflecting significant, unusual risk):
 - 51-70: High Risk - Contains multiple clauses with significant risks that warrant careful review and negotiation.
 - 71-100: Critical Risk - Contains clauses with severe, highly unfavorable, or hidden terms that pose critical risks and require immediate revision.
 
-STRICT FORMATTING: For the "Top 5 Risky Clauses" list, each numbered item must contain ONLY the full clause text content WITHOUT any section numbers, headers, or reference numbers (such as 2.3, 4.1, Section A, etc.). Do NOT include any document section numbering - extract only the pure clause language. Follow this exact format: the clause text, then a space, then the severity tag in brackets, then a space, then the risk category in brackets, then " - " and the one-line explanation, all on a single line. Example: `[Full Clause text] [High Risk] [Legal Risk] - [One line explanation]` If no significant risks are found, state "No significant risky clauses found."
+STRICT FORMATTING: For the "Top 5 Risky Clauses" list, each numbered item MUST contain ONLY the full clause text content WITHOUT any section numbers, headers, or reference numbers (such as 2.3, 4.1, Section A, etc.). Do NOT include any document section numbering - extract only the pure clause language. Follow this exact format for EACH item: the full clause text, then a space, then the severity tag in brackets, then a space, then the risk category in brackets, then " - " and the one-line explanation. Example: `[Full Clause text] [High Risk] [Legal Risk] - [One line explanation]`. If you cannot extract the full clause text or provide all required tagging and explanation for a potential risky clause, you MUST exclude it from the numbered list. If no significant risks are found that can be fully formatted, state "No significant risky clauses found."
 
 Format your response exactly as follows:
 Risk Score: XX

@@ -28,7 +28,7 @@ async def read_index():
     return FileResponse("static_frontend/index.html")
 
 def parse_analysis(analysis_text: str) -> dict:
-    """Parse the analysis text to extract risk score, clauses, risk categories, and clause severity from LLM output."""
+    """Parse the analysis text to extract risk score, and fully formatted risky clauses from LLM output."""
     result = {
         "risk_score": 0,
         "risky_clauses": [],
@@ -41,26 +41,27 @@ def parse_analysis(analysis_text: str) -> dict:
     if score_match:
         result["risk_score"] = int(score_match.group(1))
 
-    # Extract risky clauses, categories, and severity from LLM formatted list
+    # Extract fully formatted risky clauses, categories, and severity
     clauses = []
     categories = []
-    severity_tags = [] # Use a new variable name for clarity
+    severity_tags = []
 
     # Regex to capture: Clause Text, Severity, Category, Explanation
     # Format: [Clause Text] [Severity] [Category] - [Explanation]
-    clause_regex = re.compile(r'(.+?)\s*\[([^\]]+)\]\s*\[([^\]]+)\]\s*-\s*(.+)')
+    # This regex is strict and requires all parts to be present after removing leading numbers/document numbers.
+    full_clause_regex = re.compile(r'(.+?)\s*\[([^\]]+)\]\s*\[([^\]]+)\]\s*-\s*(.+)')
 
     for line in analysis_text.split('\n'):
-        # Check for numbered list items (1., 2., etc.) from LLM output
+        # Only process lines that look like numbered list items from the LLM
         if re.match(r'^\d+\.\s*', line.strip()):
-            # Remove the number and dot prefix
+            # Remove the LLM's list number and dot prefix
             line_cleaned = re.sub(r'^\d+\.\s*', '', line.strip())
 
             # Remove potential original document numbering at the beginning of the line
             line_cleaned = re.sub(r'^(\d+(\.\d+)*\s+)', '', line_cleaned)
 
-            # Attempt to match the new LLM output format (Clause] [Severity] [Category] - Explanation)
-            match = clause_regex.match(line_cleaned)
+            # Attempt to match the strict full format
+            match = full_clause_regex.match(line_cleaned)
 
             if match:
                 # Extract groups: (Clause Text), (Severity), (Category), (Explanation)
@@ -75,16 +76,11 @@ def parse_analysis(analysis_text: str) -> dict:
                 clauses.append(full_clause_entry)
                 severity_tags.append(severity)
                 categories.append(category)
-            elif line_cleaned: # Fallback if regex doesn't match but line is not empty
-                 # This case might happen if the LLM doesn't follow the format perfectly.
-                 # We'll add the cleaned line as clause text, and empty strings for category/severity.
-                 clauses.append(line_cleaned)
-                 severity_tags.append("")
-                 categories.append("")
+            # If the line is a numbered list item but doesn't match the strict regex, it's excluded.
 
     result["risky_clauses"] = clauses
     result["risk_categories"] = categories
-    result["clause_severity"] = severity_tags # Use the extracted severity tags
+    result["clause_severity"] = severity_tags
 
     return result
 

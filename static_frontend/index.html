@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,47 +9,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css"> <!-- Link to external CSS -->
 </head>
+
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-2xl">
         <div class="bg-white rounded-xl shadow-lg p-8">
             <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
                 File Risk Score Generator
             </h1>
-            
+
             <div class="space-y-6">
+                <!-- Error Message Display Area -->
+                <div id="error-message-area" class="mt-4 p-4 bg-red-100 text-red-700 rounded-lg hidden">
+                    <!-- Error messages will appear here -->
+                </div>
                 <!-- File Upload Section -->
                 <div class="space-y-2">
                     <label for="file-upload" class="block text-sm font-medium text-gray-700">
                         Upload File:
                     </label>
-                    <input
-                        type="file"
-                        id="file-upload"
-                        class="block w-full text-sm text-gray-500
+                    <input type="file" id="file-upload" class="block w-full text-sm text-gray-500
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-full file:border-0
                             file:text-sm file:font-semibold
                             file:bg-blue-50 file:text-blue-700
                             hover:file:bg-blue-100
-                            cursor-pointer"
-                    >
+                            cursor-pointer">
                 </div>
-
+                
+                <div id="analyzed-filename-area" class="mt-4 hidden">
+                    <p class="text-sm font-medium text-gray-700">Analyzed File:</p>
+                    <p id="analyzed-filename" class="text-sm text-gray-900 truncate"></p>
+                </div>
                 <!-- File Name/ID Input -->
                 <div class="space-y-2">
-                    <input
-                        type="text"
-                        id="file-id"
-                        placeholder="Enter file name or ID (optional)"
-                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    >
+                    <input type="text" id="file-id" placeholder="Enter file name or ID (optional)"
+                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
                 </div>
 
                 <!-- Generate Button -->
-                <button
-                    onclick="generateScore()"
-                    class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-200 ease-in-out transform hover:scale-[1.02]"
-                >
+                <button onclick="generateScore()"
+                    class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-200 ease-in-out transform hover:scale-[1.02]">
                     Generate Risk Score
                 </button>
 
@@ -57,13 +57,15 @@
                     <div class="text-center">
                         <span id="score-value" class="text-2xl font-bold text-gray-800">N/A</span>
                     </div>
-                    
+
                     <!-- Risk Score Bar -->
                     <div class="relative h-4 bg-gray-200 rounded-full overflow-hidden">
                         <div class="risk-bar absolute inset-0"></div>
-                        <div id="risk-indicator" class="risk-indicator absolute top-0 w-1 h-full bg-black transform -translate-x-1/2" style="left: 50%"></div>
+                        <div id="risk-indicator"
+                            class="risk-indicator absolute top-0 w-1 h-full bg-black transform -translate-x-1/2"
+                            style="left: 50%"></div>
                     </div>
-                    
+
                     <!-- Risk Level Labels -->
                     <div class="flex justify-between text-sm text-gray-600">
                         <span>Low Risk</span>
@@ -85,4 +87,5 @@
 
     <script src="/static/script.js"></script> <!-- Link to external JS -->
 </body>
-</html> 
+
+</html>
