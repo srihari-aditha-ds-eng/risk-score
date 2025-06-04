@@ -5,12 +5,25 @@ from document_processor import DocumentProcessor
 from embedding_manager import EmbeddingManager
 from risk_analyzer import RiskAnalyzer
 
-def process_reference_docs(reference_dir: str, embedding_manager: EmbeddingManager):
+# Initialize components globally
+embedding_manager = EmbeddingManager()
+risk_analyzer = RiskAnalyzer()
+
+def process_reference_docs(reference_dir: str):
     """Process all reference documents and add them to the vector database."""
     doc_processor = DocumentProcessor()
     
+    if not os.path.exists(reference_dir) or not os.listdir(reference_dir):
+        print(f"No reference documents found in {reference_dir}. Skipping processing.")
+        return
+        
+    print("Processing reference documents...")
+    
+    # Clear existing documents from the collection before adding new ones
+    embedding_manager.clear_collection() 
+    
     for filename in os.listdir(reference_dir):
-        if filename.endswith(('.pdf', '.docx', '.doc')):
+        if filename.endswith(('.pdf', '.docx', '.doc', '.txt')):
             file_path = os.path.join(reference_dir, filename)
             print(f"Processing reference document: {filename}")
             
@@ -19,8 +32,9 @@ def process_reference_docs(reference_dir: str, embedding_manager: EmbeddingManag
             
             # Add to vector database
             embedding_manager.add_documents(chunks)
+    print("Finished processing reference documents.")
 
-def analyze_document(file_path: str, embedding_manager: EmbeddingManager, risk_analyzer: RiskAnalyzer):
+def analyze_document(file_path: str):
     """Analyze a document and provide risk assessment."""
     doc_processor = DocumentProcessor()
     
@@ -28,21 +42,17 @@ def analyze_document(file_path: str, embedding_manager: EmbeddingManager, risk_a
     print(f"Processing document: {file_path}")
     chunks = doc_processor.process_document(file_path)
     
-    # Find similar documents
+    # Find similar documents using the globally initialized embedding_manager
     print("Finding similar documents...")
     similar_docs = []
     for chunk in chunks:
         similar_docs.extend(embedding_manager.search_similar(chunk['text']))
     
-    # Analyze document
+    # Analyze document using the globally initialized risk_analyzer
     print("Analyzing document...")
     analysis = risk_analyzer.analyze_document(chunks, similar_docs)
     
-    # Print results
-    print("\n=== Risk Analysis Results ===")
-    print(f"Risk Score: {analysis['risk_score']}/100")
-    print("\nDetailed Analysis:")
-    print(analysis['analysis'])
+    return analysis
 
 def main():
     parser = argparse.ArgumentParser(description="Document Risk Analysis System")
@@ -55,24 +65,22 @@ def main():
     os.makedirs(args.reference_dir, exist_ok=True)
     os.makedirs("vector_db", exist_ok=True)
     
-    # Initialize components
-    embedding_manager = EmbeddingManager()
-    risk_analyzer = RiskAnalyzer()
+    # Process reference documents on startup
+    process_reference_docs(args.reference_dir)
     
-    # Process reference documents if they exist
-    if os.path.exists(args.reference_dir) and os.listdir(args.reference_dir):
-        print("Processing reference documents...")
-        process_reference_docs(args.reference_dir, embedding_manager)
-    
-    # Analyze document if provided
+    # Analyze document if provided via CLI
     if args.document:
         if not os.path.exists(args.document):
             print(f"Error: Document not found: {args.document}")
             return
         
-        analyze_document(args.document, embedding_manager, risk_analyzer)
+        analysis = analyze_document(args.document)
+        print("\n=== Risk Analysis Results ===")
+        print(f"Risk Score: {analysis['risk_score']}/100")
+        print("\nDetailed Analysis:")
+        print(analysis['analysis'])
     else:
-        print("No document provided for analysis. Use --document to specify a document.")
+        print("No document provided for CLI analysis.")
 
 if __name__ == "__main__":
     main() 
