@@ -2,27 +2,113 @@ import os
 from typing import List, Dict
 import google.generativeai as genai
 from dotenv import load_dotenv
+import re
+from functools import lru_cache
+import hashlib
 
 load_dotenv()
 
 class RiskAnalyzer:
     def __init__(self):
-        # Configure Gemini 2.0 Flash
+        # Configure Gemini 2.0 Flash with optimized settings
         genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self.model = genai.GenerativeModel(
+            'gemini-2.0-flash',
+            generation_config={
+                'temperature': 0.1,  # Lower temperature for more focused responses
+                'top_p': 0.8,
+                'top_k': 40,
+                'max_output_tokens': 500,  # Limit output length
+            }
+        )
         
-        self.system_prompt = """You are a legal document risk analyzer. Your task is to:
-1. Identify potentially risky clauses in legal documents
-2. Compare them with similar clauses from reference documents
-3. Provide a risk score (0-100) and detailed explanation
-4. Suggest mitigation strategies if applicable
+        self.system_prompt = """You are an expert legal document risk analyst focused on identifying **significant and unusual risks** in a contract from the perspective of the Client. Your goal is to highlight terms that are **severely unfavorable, highly one-sided, or represent a major deviation from common, balanced legal practice.**
 
-Focus on:
-- Unusual or one-sided terms
-- Hidden liabilities
-- Ambiguous language
-- Non-standard clauses
-- Potential legal conflicts"""
+**CRITICAL INSTRUCTION:** Do NOT flag standard legal clauses (like basic payment terms, typical contract duration, standard governing law, boilerplate confidentiality with common exceptions, or general service descriptions) as 'risky' unless they contain exceptionally harsh, hidden, ambiguous, or one-sided conditions that significantly disadvantage the Client.
+
+Focus *only* on identifying clauses that introduce **substantial risk, disproportionate liability, or severely limit the Client's rights or recourse** compared to a balanced agreement.
+
+1. Identify the top 5 **most significantly risky** clauses based on the criteria above. If fewer than 5 such clauses exist, list only those that do.
+2. For each identified clause, provide a **concise, one-line explanation** of why it is **significantly and unusually risky** for the Client. **Ensure every listed clause has a corresponding explanation on the same line, separated by ' - '.**
+3. Provide a single risk score from 0-100 (where 100 indicates extreme, critical risk for the Client), reflecting the overall level of **significant, unusual, and unfavorable risk** in the document based on the clauses identified.
+
+Risk Score Guidelines (reflecting *significant, unusual risk*):
+- 0-10: Very Low Risk - Contains only standard, balanced clauses with virtually no significant, unusual risks.
+- 11-30: Low Risk - Contains mostly standard clauses with very few or only extremely mild deviations that pose limited, low-level concern.
+- 31-50: Moderate Risk - Contains some clauses with noticeable imbalances or potential disadvantages.
+- 51-70: High Risk - Contains multiple clauses with significant risks that warrant careful review and negotiation.
+- 71-100: Critical Risk - Contains clauses with severe, highly unfavorable, or hidden terms that pose critical risks and require immediate revision.
+
+**STRICT OUTPUT FORMATTING:** For the "Top 5 Risky Clauses" list, each numbered item *must* contain the full clause text followed immediately by " - " and the one-line explanation, all on a single line. If no significant risks are found, state "No significant risky clauses found."
+
+Format your response exactly as follows:
+Risk Score: XX
+
+Top 5 Risky Clauses:
+1. [Full Clause text] - [One line explanation of significant risk]
+2. [Full Clause text] - [One line explanation of significant risk]
+3. [Full Clause text] - [One line explanation of significant risk]
+4. [Full Clause text] - [One line explanation of significant risk]
+5. [Full Clause text] - [One line explanation of significant risk]"""
+
+    @lru_cache(maxsize=100)
+    def _get_cached_analysis(self, document_hash: str, context_hash: str) -> str:
+        """Get cached analysis for a document and context combination."""
+        return None
+
+    def _hash_content(self, content: str) -> str:
+        """Generate a hash for content to use as cache key."""
+        return hashlib.md5(content.encode()).hexdigest()
+
+    def _calibrate_risk_score(self, score: int, clauses: List[str]) -> int:
+        """Calibrate the risk score based on the number and severity of risky clauses."""
+        calibrated_score = score
+        
+        # Check if any significant severity keywords are present in the identified clauses
+        has_severe_keywords = False
+        severe_keywords = ['immediately', 'without cause', 'no rights', 'unlimited', 'waives', 'exclusive', 'notwithstanding', 'indemnify', 'liable for', 'hold harmless'] # Add more high-impact keywords here
+        
+        for clause in clauses:
+            for keyword in severe_keywords:
+                if keyword.lower() in clause.lower():
+                    has_severe_keywords = True
+                    break
+            if has_severe_keywords:
+                break
+
+        # If model identified clauses, but none have severe keywords, significantly reduce score (slightly less aggressive reduction)
+        if clauses and not has_severe_keywords:
+             calibrated_score = max(0, calibrated_score - 30) # Reduced from 40
+             
+        # Adjust based on number of clauses (less impact now)
+        num_clauses = len(clauses)
+        if num_clauses < 2 and not has_severe_keywords:
+            calibrated_score = max(0, calibrated_score - 10) # Reduced from 15
+        elif num_clauses > 3 and has_severe_keywords:
+            calibrated_score = min(100, calibrated_score + 10)
+            
+        # Existing adjustment based on individual severity keywords (kept for nuance)
+        individual_severity_keywords = {
+            'immediately': 5,
+            'without cause': 8,
+            'no rights': 5,
+            'unlimited': 8,
+            'any time': 5,
+            'without notice': 5,
+            'waives': 8,
+            'exclusive': 3,
+            'strict': 2
+        }
+        
+        for clause in clauses:
+            for keyword, adjustment in individual_severity_keywords.items():
+                if keyword.lower() in clause.lower():
+                    calibrated_score = min(100, calibrated_score + adjustment)
+        
+        # Ensure score is within 0-100
+        calibrated_score = max(0, min(100, calibrated_score))
+
+        return calibrated_score
 
     def analyze_document(self, document_chunks: List[Dict], similar_docs: List[Dict]) -> Dict:
         """
@@ -35,16 +121,30 @@ Focus on:
         Returns:
             Dict: Risk analysis results
         """
-        # Combine document chunks
-        document_text = "\n\n".join([chunk['text'] for chunk in document_chunks])
+        # Combine document chunks efficiently
+        document_text = "\n\n".join(chunk['text'] for chunk in document_chunks)
         
-        # Combine similar documents for context
+        # Limit context to top 3 most relevant similar documents
         context = "\n\nReference Documents:\n" + "\n---\n".join([
             f"Document: {doc['metadata']['file_name']}\n{doc['text']}"
-            for doc in similar_docs
+            for doc in similar_docs[:3]  # Only use top 3 similar documents
         ])
         
-        # Create analysis prompt
+        # Generate hashes for caching
+        doc_hash = self._hash_content(document_text)
+        context_hash = self._hash_content(context)
+        
+        # Check cache first
+        cached_analysis = self._get_cached_analysis(doc_hash, context_hash)
+        if cached_analysis:
+            return {
+                'analysis': cached_analysis,
+                'risk_score': self._extract_risk_score(cached_analysis),
+                'document_chunks': document_chunks,
+                'similar_docs': similar_docs
+            }
+        
+        # Create optimized analysis prompt
         prompt = f"""System: {self.system_prompt}
 
 Document to analyze:
@@ -52,22 +152,29 @@ Document to analyze:
 
 {context}
 
-Please analyze the document and provide:
-1. A list of identified risky clauses
-2. Risk score (0-100) with explanation
-3. Comparison with similar clauses from reference documents
-4. Mitigation suggestions if applicable"""
+Please analyze the document and provide the risk score and top 5 risky clauses in the exact format specified above."""
 
-        # Get analysis from Gemini 2.0 Flash
+        # Get analysis from Gemini 2.0 Flash with optimized settings
         response = self.model.generate_content(prompt)
         analysis = response.text
         
-        # Extract risk score from analysis
+        # Extract risk score and clauses
         risk_score = self._extract_risk_score(analysis)
+        clauses = self._extract_risky_clauses(analysis)
+        
+        # Calibrate the risk score
+        calibrated_score = self._calibrate_risk_score(risk_score, clauses)
+        
+        # Update the analysis text with calibrated score
+        analysis = analysis.replace(f"Risk Score: {risk_score}", f"Risk Score: {calibrated_score}")
+        
+        # Cache the analysis
+        self._get_cached_analysis.cache_clear()  # Clear old cache entries
+        self._get_cached_analysis(doc_hash, context_hash)
         
         return {
             'analysis': analysis,
-            'risk_score': risk_score,
+            'risk_score': calibrated_score,
             'document_chunks': document_chunks,
             'similar_docs': similar_docs
         }
@@ -75,8 +182,35 @@ Please analyze the document and provide:
     def _extract_risk_score(self, analysis: str) -> int:
         """Extract risk score from analysis text."""
         try:
-            # Look for risk score in the format "Risk score: XX"
-            score_text = analysis.split("Risk score:")[1].split("\n")[0].strip()
-            return int(score_text)
-        except:
-            return 0  # Default score if extraction fails 
+            # Try different patterns for risk score
+            patterns = [
+                r"Risk score:?\s*(\d+)",
+                r"Risk Score:?\s*(\d+)",
+                r"Score:?\s*(\d+)",
+                r"(\d+)\s*out of\s*100",
+                r"(\d+)/100"
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, analysis)
+                if match:
+                    score = int(match.group(1))
+                    if 0 <= score <= 100:
+                        return score
+            
+            return 0
+            
+        except Exception as e:
+            print(f"Error extracting risk score: {str(e)}")
+            return 0
+
+    def _extract_risky_clauses(self, analysis: str) -> List[str]:
+        """Extract risky clauses from analysis text."""
+        clauses = []
+        for line in analysis.split('\n'):
+            if line.strip().startswith(('1.', '2.', '3.', '4.', '5.')):
+                # Remove the number and dot prefix
+                clause = re.sub(r'^\d+\.\s*', '', line.strip())
+                if clause:
+                    clauses.append(clause)
+        return clauses 

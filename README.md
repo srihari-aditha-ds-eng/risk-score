@@ -1,3 +1,6 @@
+## Directory Structure
+
+```text
 risk-score/
 ├── documents/              # Place your documents to analyze here
 ├── reference_documents/    # Place your reference documents here
@@ -6,6 +9,7 @@ risk-score/
 ├── main.py                 # Original CLI entry point (can be kept or removed)
 ├── requirements.txt
 └── ... (other Python files)
+```
 
 ## Prerequisites
 
